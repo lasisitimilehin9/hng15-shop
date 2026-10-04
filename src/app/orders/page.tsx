@@ -17,6 +17,7 @@ function OrdersContent() {
 
   useEffect(() => {
     const supabase = createClient();
+    if (!supabase) return;
     supabase.auth.getUser().then(async ({ data }) => {
       setUser(data.user);
       if (!data.user) {

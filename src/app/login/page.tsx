@@ -12,6 +12,11 @@ export default function LoginPage() {
     setError(null);
     try {
       const supabase = createClient();
+      if (!supabase) {
+        setError("Authentication is not configured. Add Supabase env vars on Vercel.");
+        setLoading(false);
+        return;
+      }
       const origin = window.location.origin;
       const { error: err } = await supabase.auth.signInWithOAuth({
         provider: "google",

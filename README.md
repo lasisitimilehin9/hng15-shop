@@ -110,3 +110,10 @@ Built for HNG Internship 15 Lesson 2 individual task using AI-assisted implement
 - Mailgun: credentials not required for code review; set `MAILGUN_DRY_RUN=true` until keys are available
 
 Do not commit `.env.local`. Use `.env.example` only.
+
+## Lesson 3 — shared cart
+
+- Table `cart_items` (see `supabase/migrations/20261003_cart_items.sql`) with RLS per user.
+- API: `GET|PUT|DELETE /api/cart`, `POST|PATCH|DELETE /api/cart/items`.
+- Authenticated web users sync via `CartSync` + Zustand; logged-out users keep `localStorage` (`oriki-cart`).
+- Checkout clears `cart_items` and decrements stock via service role / `decrement_product_stock` RPC.

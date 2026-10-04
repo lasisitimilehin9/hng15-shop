@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { sendOrderConfirmationEmail } from "@/lib/mailgun";
 
 type BodyItem = { productId: string; quantity: number };
@@ -169,14 +170,29 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Best-effort stock decrement
-    for (const item of items) {
-      const p = byId.get(item.productId)!;
-      await supabase
-        .from("products")
-        .update({ stock: Math.max(0, p.stock - item.quantity) })
-        .eq("id", p.id);
+    // Stock decrement via service role (no client product UPDATE policy)
+    try {
+      const admin = createAdminClient();
+      for (const item of items) {
+        const p = byId.get(item.productId)!;
+        const { error: stockErr } = await admin.rpc("decrement_product_stock", {
+          p_product_id: p.id,
+          p_qty: item.quantity,
+        });
+        if (stockErr) {
+          // Fallback direct update with service role if RPC not migrated yet
+          await admin
+            .from("products")
+            .update({ stock: Math.max(0, p.stock - item.quantity) })
+            .eq("id", p.id);
+        }
+      }
+    } catch (stockEx) {
+      console.error("stock decrement failed", stockEx);
     }
+
+    // Clear server cart for this user after successful order
+    await supabase.from("cart_items").delete().eq("user_id", user.id);
 
     await sendOrderConfirmationEmail({
       to: customer_email.trim(),

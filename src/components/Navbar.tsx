@@ -14,10 +14,17 @@ export default function Navbar() {
 
   useEffect(() => {
     const supabase = createClient();
-    supabase.auth.getUser().then(({ data }) => {
-      setUser(data.user);
+    if (!supabase) {
       setLoading(false);
-    });
+      return;
+    }
+    supabase.auth
+      .getUser()
+      .then(({ data }) => {
+        setUser(data.user);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_e, session) => {
@@ -28,7 +35,7 @@ export default function Navbar() {
 
   async function signOut() {
     const supabase = createClient();
-    await supabase.auth.signOut();
+    if (supabase) await supabase.auth.signOut();
     setUser(null);
     setOpen(false);
   }
